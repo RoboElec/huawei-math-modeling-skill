@@ -29,7 +29,7 @@
 
 - 🧠 **建模分析**：读题、检查附件、拆分子问题、选择模型、设计求解与验证方案。
 - 💻 **双语言实现**：支持 Python 和 MATLAB，按选中的模型与功能动态检查依赖。
-- 📊 **完整结果输出**：生成结果表格、原始数据图、模型运行过程图和最终结果图。
+- 📊 **完整结果输出**：生成结果表格、原始数据图、模型运行过程图和最终结果图，以及必须的总体建模流程图。
 - 🎨 **出版级科学可视化**：先剖析数据和论证目标再选图，提供 Python/MATLAB 统一样式、色觉友好编码、SVG + 300 DPI PNG 导出与成图自检闭环。
 - 🔁 **可复现运行**：记录随机种子、输入文件 SHA-256、运行时与依赖版本、关键参数和唯一复现命令。
 - 🔎 **双引擎论文搜索**：并行调用 OpenAlex 与 AnySearch，按 DOI 或题名交叉核验。
@@ -48,7 +48,7 @@
 | 阶段 | 角色 | 核心任务 | 独立门禁 | 固定交付物 |
 |:---:|---|---|---|---|
 | ① | [建模手](references/roles/建模手/SKILL.md) | 理解题目、设计模型、定义算法和验证方案 | `M1` 建模终检 | `题目分析报告.md`、`术语表格.md` |
-| ② | [编程手](references/roles/编程手/SKILL.md) | 编写并运行 Python/MATLAB，生成结果与图 | `P1` 最小可运行结果、`P2` 编程终检 | 代码、结果表格、三类各至少 3 张且覆盖全部子问题的候选图、`results/复现清单.json` |
+| ② | [编程手](references/roles/编程手/SKILL.md) | 编写并运行 Python/MATLAB，生成结果与图 | `P1` 最小可运行结果、`P2` 编程终检 | 代码、结果表格、三类各至少 3 张且覆盖全部子问题的候选图、至少 1 幅总体建模流程图、`results/复现清单.json` |
 | ③ | [论文手](references/roles/论文手/SKILL.md) | 基于真实结果构建论证并生成 Word 论文 | `W1` 证据大纲、`W2` 论文终检 | 至少 8 幅且覆盖全部子问题的正式图；默认交付 `完整论文.docx`；用户显式要求时同时交付 LaTeX 源码项目、PDF 与哈希清单 |
 
 质检 Subagent 是阶段内只读验收者，不是第四个固定角色。默认只启用固定质检；其他协作仅在用户明确选择后运行。`P1` 在全量计算和正式出图前执行，`W1` 在长篇正文和双格式排版前执行；禁止等全流程结束后才首次质检。完整协议见 [Subagent 调度与阶段门禁](references/Subagent调度.md)。
@@ -139,6 +139,8 @@ PROJECT_ROOT/
 │   ├── process_q1_*.svg / process_q1_*.png
 │   ├── result_q1_*.svg / result_q1_*.png
 │   ├── raw_q2_* / process_q2_* / result_q2_*  # 其余问题依次覆盖
+│   ├── flow_overall_model.svg / .png     # 总体建模流程图（必须）
+│   ├── flow_qN_model.svg / .png          # 子问题流程图（按需）
 │   └── _qa/                       # 自动生成的灰度质检预览
 ├── 完整论文.docx                 # 默认交付的 Word 论文
 ├── 完整论文.conversion.json      # LaTeX→DOCX 输入/输出/模板哈希与警告记录（LaTeX 可选时）
@@ -155,7 +157,7 @@ PROJECT_ROOT/
 
 | 工具 | 用途 |
 |---|---|
-| [科研可视化](tools/figure/SKILL.md) | 数据剖析、选图决策、Nature/SCI 出版级绘制、自检闭环、多格式导出 |
+| [科研可视化](tools/figure/SKILL.md) | 数据剖析、选图决策、Nature/SCI 出版级绘制、建模流程图、自检闭环、多格式导出 |
 | [双引擎论文搜索](tools/paper_search/SKILL.md) | OpenAlex + AnySearch 搜索、融合和交叉核验 |
 | [DOCX 工具](tools/docx/SKILL.md) | 官方模板、递归 LaTeX→DOCX、警告发布门禁、OMML 公式、三线表、修订、批注和校验 |
 | [LaTeX 工具](tools/latex/SKILL.md) | 环境诊断、官方模板溯源、真实编译、哈希绑定、引用与 PDF 质量校验 |
