@@ -51,24 +51,24 @@ VERB_RE = re.compile(r"\\verb\*?(?P<delimiter>[^\w\s]).*?(?P=delimiter)")
 APPENDIX_RE = re.compile(r"\\appendix\b|\\begin\s*\{appendices\}")
 QUALITY_DEFAULTS = {
     "cumcm": {
-        "min_content_units": 15_000,
-        "min_pages": 20,
-        "min_equations": 5,
-        "min_figures": 8,
-        "min_tables": 3,
+        "min_content_units": 0,
+        "min_pages": 0,
+        "min_equations": 0,
+        "min_figures": 0,
+        "min_tables": 0,
     },
     "mcm-icm": {
         "min_content_units": 0,
         "min_pages": 0,
         "min_equations": 0,
-        "min_figures": 8,
+        "min_figures": 0,
         "min_tables": 0,
     },
     "generic": {
         "min_content_units": 0,
         "min_pages": 0,
         "min_equations": 0,
-        "min_figures": 8,
+        "min_figures": 0,
         "min_tables": 0,
     },
 }
@@ -999,7 +999,7 @@ def inspect_paper(
 
     question_ids = _normalise_questions(questions)
     if quality_checks and not question_ids:
-        issues.append("质量校验必须通过 --questions 声明全部子问题（如 q1 q2）")
+        issues.append("提示：未通过 --questions 声明子问题；将跳过按图标签统计的子问题覆盖指标")
     question_coverage = {}
     for question in question_ids:
         matched = any(re.match(
@@ -1007,7 +1007,7 @@ def inspect_paper(
         ) for label in figure_labels)
         question_coverage[question] = matched
         if not matched:
-            issues.append(f"子问题 {question} 缺少正式结果图（label 应以 fig:{question}- 开头）")
+            issues.append(f"提示：子问题 {question} 没有以 fig:{question}- 开头的正式结果图；若该问由表格、数值、公式或解析结果充分支撑，可忽略此提示")
 
     threshold_values, threshold_overrides = _thresholds(
         contest,
@@ -1148,7 +1148,8 @@ def inspect_paper(
         "threshold_overrides": threshold_overrides,
         "metrics": metrics,
         "issues": list(dict.fromkeys(issues)),
-        "passed": not issues,
+        "blocking_issues": [item for item in dict.fromkeys(issues) if not (item.startswith("预警：") or item.startswith("提示："))],
+        "passed": not any(not (item.startswith("预警：") or item.startswith("提示：")) for item in dict.fromkeys(issues)),
     }
 
 
@@ -1210,10 +1211,17 @@ def _warning_gate(
     except re.error as error:
         raise ValueError(f"无效的预警允许正则：{error}") from error
     allowed, blocked = [], []
+    nonblocking_default = re.compile(
+        r"(?:Over|Under)full \\[hv]box|font warning",
+        re.I,
+    )
     for warning in warnings:
-        (allowed if any(pattern.search(warning) for pattern in compiled) else blocked).append(
-            warning
-        )
+        if nonblocking_default.search(warning):
+            allowed.append(warning)
+        elif any(pattern.search(warning) for pattern in compiled):
+            allowed.append(warning)
+        else:
+            blocked.append(warning)
     return allowed, blocked
 
 

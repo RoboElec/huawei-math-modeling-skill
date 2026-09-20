@@ -12,10 +12,9 @@ def read(relative_path: str) -> str:
 class SubagentProtocolTests(unittest.TestCase):
     def test_root_requires_stage_gates(self):
         text = read("SKILL.md")
-        self.assertIn("禁止等全流程结束后才首次派发", text)
         self.assertIn("references/Subagent调度.md", text)
-        self.assertIn("P2` 通过后进入论文规划", text)
-        self.assertIn("W1` 通过后才开始长篇正文", text)
+        self.assertIn("每门禁最多 2 次", text)
+        self.assertIn("预算耗尽后停止自动返工", text)
         for gate in ("M1", "P1", "P2", "W1", "W2"):
             self.assertIn(gate, text)
 
@@ -40,9 +39,11 @@ class SubagentProtocolTests(unittest.TestCase):
 
     def test_reviewers_are_read_only_and_evidence_based(self):
         text = read("references/Subagent调度.md")
-        for token in ("默认只读", "输入快照", "PASS", "FAIL", "BLOCKED", "实质变化时"):
+        for token in ("默认只读", "输入快照", "PASS", "FAIL", "BLOCKED", "AUTO_RETRY_EXHAUSTED"):
             self.assertIn(token, text)
         self.assertIn("不要按搜索引擎拆分", text)
+        self.assertIn("HUMAN_OVERRIDE", text)
+        self.assertIn("最多 2 次独立质检", text)
 
     def test_optional_subagents_are_opt_in(self):
         root = read("SKILL.md")
