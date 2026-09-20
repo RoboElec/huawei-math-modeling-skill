@@ -68,7 +68,7 @@ def audit_figure_directory(
     figures_dir: str | Path,
     *,
     min_dpi: int = 300,
-    require_categories: bool = True,
+    require_categories: bool = False,
     min_per_category: int = 3,
     questions: tuple[str, ...] = (),
 ) -> dict:
@@ -158,10 +158,10 @@ def audit_figure_directory(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="检查三类候选图数量、SVG 可编辑文本和 PNG DPI")
+    parser = argparse.ArgumentParser(description="检查已有图的配对格式、SVG 可编辑文本和 PNG DPI；类别数量检查默认关闭")
     parser.add_argument("figures_dir", help="PROJECT_ROOT 下的 figures 目录")
     parser.add_argument("--min-dpi", type=int, default=300)
-    parser.add_argument("--min-per-category", type=int, default=3, help="每类逻辑候选图最低数量")
+    parser.add_argument("--min-per-category", type=int, default=1, help="启用 --require-category-check 时的每类逻辑图最低数量")
     parser.add_argument(
         "--questions",
         nargs="+",
@@ -169,13 +169,13 @@ def main() -> int:
         metavar="Q",
         help="题目全部子问题标识，例如 q1 q2 q3",
     )
-    parser.add_argument("--no-category-check", action="store_true", help="仅检查已有图，不要求三类前缀")
+    parser.add_argument("--require-category-check", action="store_true", help="仅在官方规则或用户明确要求时检查 raw/process/result 类别数量与子问题覆盖")
     parser.add_argument("--strict", action="store_true", help="存在 FAIL 时返回非零退出码")
     args = parser.parse_args()
     report = audit_figure_directory(
         args.figures_dir,
         min_dpi=args.min_dpi,
-        require_categories=not args.no_category_check,
+        require_categories=args.require_category_check,
         min_per_category=args.min_per_category,
         questions=tuple(args.questions),
     )

@@ -170,7 +170,7 @@ See \cite{missing}.\end{document}
 
             self.assertTrue(any("重复 label" in item for item in issues))
 
-    def test_all_contests_share_the_eight_figure_quality_default(self):
+    def test_non_official_figure_minimum_is_zero_by_default(self):
         with tempfile.TemporaryDirectory() as temporary:
             main = Path(temporary) / "main.tex"
             main.write_text(
@@ -187,18 +187,11 @@ See \cite{missing}.\end{document}
                     main,
                     contest=contest,
                     quality_checks=True,
-                    min_content_units=0,
-                    min_pages=0,
-                    min_equations=0,
-                    min_tables=0,
                     require_pdf=False,
                     questions=["q1"],
-                    override_reason="单元测试仅检查统一图数量默认值",
                 )
-                self.assertTrue(
-                    any("图 0，低于质量目标 8" in issue for issue in report["issues"]),
-                    (contest, report["issues"]),
-                )
+                self.assertFalse(any("低于质量目标 8" in issue for issue in report["issues"]))
+                self.assertTrue(report["passed"], report["issues"])
 
     def test_rejects_sources_outside_project_and_missing_engine(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -253,7 +246,7 @@ See \cite{missing}.\end{document}
             self.assertEqual(observed["env"]["openin_any"], "p")
             self.assertEqual(observed["env"]["openout_any"], "p")
 
-    def test_build_gate_rejects_layout_and_font_warnings(self):
+    def test_layout_and_font_warnings_are_reported_but_nonblocking(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             main = root / "main.tex"
@@ -278,9 +271,9 @@ See \cite{missing}.\end{document}
             ), patch("latex_paper.subprocess.run", side_effect=fake_run):
                 report = build_paper(main)
 
-        self.assertFalse(report["passed"])
-        self.assertTrue(any("Overfull" in issue for issue in report["issues"]))
-        self.assertTrue(any("Font Warning" in issue for issue in report["issues"]))
+        self.assertTrue(report["passed"], report["issues"])
+        self.assertTrue(any("Overfull" in warning for warning in report["warnings"]))
+        self.assertTrue(any("Font Warning" in warning for warning in report["warnings"]))
 
     def test_external_bibliography_requires_latexmk(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -378,7 +371,7 @@ $$c=3$$
             self.assertEqual(report["metrics"]["equations"], 1)
             self.assertFalse(any(r"\[ 与 \]" in issue for issue in report["issues"]))
 
-    def test_quality_thresholds_require_valid_values_and_override_reason(self):
+    def test_quality_thresholds_allow_explicit_non_official_targets(self):
         with tempfile.TemporaryDirectory() as temporary:
             main = Path(temporary) / "main.tex"
             main.write_text(
@@ -391,14 +384,15 @@ $$c=3$$
 
             with self.assertRaisesRegex(ValueError, "不能为负数"):
                 inspect_paper(main, min_figures=-1)
-            with self.assertRaisesRegex(ValueError, "override_reason"):
-                inspect_paper(
-                    main,
-                    quality_checks=True,
-                    min_figures=1,
-                    require_pdf=False,
-                    questions=["q1"],
-                )
+            explicit = inspect_paper(
+                main,
+                quality_checks=True,
+                min_figures=1,
+                require_pdf=False,
+                questions=["q1"],
+            )
+            self.assertTrue(any("低于质量目标 1" in issue for issue in explicit["issues"]))
+            self.assertTrue(explicit["passed"], explicit["issues"])
             with self.assertRaisesRegex(ValueError, "跳过 PDF"):
                 inspect_paper(
                     main,
@@ -421,11 +415,10 @@ $$c=3$$
                 min_figures=1,
                 require_pdf=False,
                 questions=["q1"],
-                override_reason="官方赛题只要求一张图",
             )
-            self.assertEqual(report["threshold_overrides"][0]["name"], "min_figures")
+            self.assertEqual(report["threshold_overrides"], [])
 
-    def test_requires_each_declared_question_to_have_a_formal_figure(self):
+    def test_missing_question_figure_is_non_blocking_hint(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "q1.png").write_bytes(b"png")
@@ -453,7 +446,8 @@ $$c=3$$
 
             self.assertTrue(report["metrics"]["question_figure_coverage"]["q1"])
             self.assertFalse(report["metrics"]["question_figure_coverage"]["q2"])
-            self.assertTrue(any("q2" in issue for issue in report["issues"]))
+            self.assertTrue(any("q2" in issue and issue.startswith("提示：") for issue in report["issues"]))
+            self.assertTrue(report["passed"], report["issues"])
 
     def test_rejects_svg_in_safe_compilation_chain(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -475,7 +469,7 @@ $$c=3$$
 
             self.assertTrue(any("PDF/PNG/JPG" in issue for issue in report["issues"]))
 
-    def test_warning_build_does_not_publish_unless_explicitly_allowed(self):
+    def test_layout_warning_build_publishes_and_is_recorded(self):
         with tempfile.TemporaryDirectory() as temporary:
             parent = Path(temporary)
             root = parent / "project"
@@ -503,22 +497,9 @@ $$c=3$$
                 patch("latex_paper.subprocess.run", side_effect=fake_run),
             )
             with patches[0], patches[1]:
-                blocked = build_paper(main, publish_path=published)
-            self.assertFalse(blocked["passed"])
-            self.assertFalse(published.exists())
-
-            with patch(
-                "latex_paper.shutil.which",
-                side_effect=lambda name: name if name in {"latexmk", "xelatex"} else None,
-            ), patch("latex_paper.subprocess.run", side_effect=fake_run):
-                allowed = build_paper(
-                    main,
-                    publish_path=published,
-                    allow_warnings=[r"Overfull"],
-                    override_reason="确认 0.1pt 不影响版面",
-                )
-
-            self.assertTrue(allowed["passed"])
+                report = build_paper(main, publish_path=published)
+            self.assertTrue(report["passed"], report["issues"])
+            self.assertTrue(any("Overfull" in warning for warning in report["warnings"]))
             self.assertTrue(published.is_file())
             self.assertTrue(published.with_suffix(".build.json").is_file())
 

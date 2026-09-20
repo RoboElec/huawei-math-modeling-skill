@@ -108,28 +108,26 @@ class PaperFormatTests(unittest.TestCase):
 
         self.assertFalse(any("内部流程术语残留" in e for e in errors), errors)
 
-    def test_quality_validation_reports_length_formula_figure_table_and_page_gaps(self):
-        doc = self._front_matter()
-
-        issues = pf.validate_paper_structure(doc, contest="cumcm")
-
-        for expected in ("15000", "公式", "图", "表", "渲染页数"):
-            self.assertTrue(any(expected in issue for issue in issues), expected)
-        self.assertTrue(any("低于质量目标 8" in issue for issue in issues))
-
-    def test_other_contests_share_the_eight_figure_default(self):
+    def test_non_official_quality_minima_are_not_default_failures(self):
         doc = self._front_matter()
 
         issues = pf.validate_paper_structure(
             doc,
-            contest="mcm-icm",
-            min_content_units=0,
-            min_equations=0,
-            min_tables=0,
+            contest="cumcm",
             require_rendered_pages=False,
         )
 
-        self.assertTrue(any("低于质量目标 8" in issue for issue in issues))
+        self.assertFalse(any("低于质量目标" in issue for issue in issues), issues)
+
+    def test_explicit_quality_target_is_reported_as_non_blocking_warning(self):
+        doc = self._front_matter()
+        issues = pf.validate_paper_structure(
+            doc,
+            contest="mcm-icm",
+            min_figures=2,
+            require_rendered_pages=False,
+        )
+        self.assertTrue(any("低于质量目标 2" in issue for issue in issues), issues)
 
     def test_table_caption_must_be_referenced_in_body(self):
         doc = self._front_matter()
@@ -209,16 +207,15 @@ class PaperFormatTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PROJECT_ROOT"):
             pf.save_document(doc, pf.SKILL_ROOT, contest="cumcm")
 
-    def test_completion_gate_rejects_incomplete_docx(self):
+    def test_completion_gate_does_not_fail_on_non_official_minimums(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "完整论文.docx"
             self._front_matter().save(path)
 
             report = pf.validate_document(path, contest="cumcm", rendered_pages=7)
 
-        self.assertFalse(report["passed"])
-        self.assertLess(report["metrics"]["content_units"], 15000)
-        self.assertTrue(any("15000" in issue for issue in report["issues"]))
+        self.assertTrue(report["passed"], report["issues"])
+        self.assertEqual(report["blocking_issues"], [])
 
 
 if __name__ == "__main__":

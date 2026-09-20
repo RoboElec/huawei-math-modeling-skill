@@ -78,7 +78,7 @@ python "<SKILL_ROOT>/tools/latex/scripts/latex_paper.py" build `
   --publish "<PROJECT_ROOT>/完整论文.pdf"
 ```
 
-若官方模板明确要求 LuaLaTeX 或 pdfLaTeX，再改用 `--engine lualatex` 或 `--engine pdflatex`。缺少宏包时报告环境问题，不自动联网安装，也不擅自替换官方文档类。编译日志中的未解析引用、LaTeX/宏包/文档类预警、Overfull/Underfull box 和字体预警默认阻断发布；构建目录可以保留失败产物用于诊断，但不会生成 `PROJECT_ROOT/完整论文.pdf`。
+若官方模板明确要求 LuaLaTeX 或 pdfLaTeX，再改用对应引擎。缺少宏包时报告环境问题，不自动联网安装，也不擅自替换官方文档类。未解析引用/文献、LaTeX 错误和未分类的宏包/文档类 warning 默认阻断发布；`Overfull/Underfull box` 与普通字体 warning 默认记录但不单独阻断，必须结合最终 PDF 渲染检查判断可读性。构建目录可保留失败产物用于诊断。
 
 只有已经逐项确认且当届官方规则或用户明确允许的预警，才能用精确正则和具体理由覆盖：
 
@@ -120,7 +120,7 @@ python "<SKILL_ROOT>/tools/latex/scripts/latex_paper.py" validate `
 - LaTeX 项目中的代码和图表副本是否与 `PROJECT_ROOT` 权威来源绑定且未漂移；
 - PDF 空白页、页面尺寸、字体嵌入和内嵌位图 DPI。
 
-CUMCM 的约 15000 字词单位、约 20 页、5 个公式和 3 个表只是可覆盖的完整度质量目标。CUMCM 与 MCM/ICM 均默认至少 8 幅图；页数上限等官方硬约束必须从目标届次规则读取后通过参数传入。MCM/ICM 不内置永久页数阈值。
+仓库不内置跨竞赛统一的最低字数、最低页数、最低公式数、最低图数或最低表数。页数上限、摘要、语言、图表或其他官方硬约束必须从目标届次规则核验后通过参数传入；用户也可显式设置额外质量目标，但这些目标应与官方硬约束区分。
 
 所有阈值必须是非负数，页数上限和最低 DPI 必须为正数。降低默认质量目标或临时使用 `--no-require-pdf` 跳过 PDF 审计时，必须同时传入 `--override-reason "<官方条款、用户要求或阶段性原因>"`，并由校验报告记录；跳过 PDF 的报告不能用于最终交付。质量校验必须通过 `--questions` 明确列出全部子问题，不能只为问题一集中出图。
 

@@ -253,6 +253,8 @@ class FigureAuditTests(unittest.TestCase):
             report = figure_audit.audit_figure_directory(
                 figures,
                 questions=("q1", "q2"),
+                require_categories=True,
+                min_per_category=3,
             )
 
         self.assertFalse(report["ok"])
@@ -264,7 +266,7 @@ class FigureAuditTests(unittest.TestCase):
         self.assertIn("子问题 q2 缺少 process_ 类候选图", messages)
         self.assertIn("子问题 q2 缺少 result_ 类候选图", messages)
 
-    def test_requires_explicit_complete_question_list(self):
+    def test_default_audit_does_not_require_category_or_question_quota(self):
         with tempfile.TemporaryDirectory() as tmp:
             figures = Path(tmp)
             for prefix in ("raw", "process", "result"):
@@ -275,8 +277,8 @@ class FigureAuditTests(unittest.TestCase):
 
             report = figure_audit.audit_figure_directory(figures)
 
-        self.assertFalse(report["ok"])
-        self.assertTrue(any("未提供全部子问题标识" in item["message"] for item in report["issues"]))
+        self.assertTrue(report["ok"], report["issues"])
+        self.assertEqual(report["questions"], [])
 
     def test_rejects_low_dpi_and_missing_editable_text(self):
         with tempfile.TemporaryDirectory() as tmp:
